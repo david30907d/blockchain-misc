@@ -1,10 +1,8 @@
-package main
+package blockchain
 
 import (
 	"bytes"
 	"crypto/sha256"
-	"fmt"
-	"math/big"
 )
 
 type BlockChain struct {
@@ -42,23 +40,4 @@ func Genesis() *Block {
 
 func InitBlockChain() *BlockChain {
 	return &BlockChain{[]*Block{Genesis()}}
-}
-
-func main() {
-	chain := InitBlockChain()
-
-	chain.AddBlock("First Block after Genesis")
-	chain.AddBlock("Second Block after Genesis")
-	chain.AddBlock("Third Block after Genesis")
-
-	for idx, block := range chain.blocks {
-		fmt.Printf("Previous Hash: %x\n", block.PrevHash)
-		fmt.Printf("Data in Block: %x\n", block.Data)
-		fmt.Printf("Hash: %x\n", block.Hash)
-		fmt.Printf("=======Block %d======\n", idx)
-	}
-	target := big.NewInt(1)
-	fmt.Println("%d", target)
-	target.Lsh(target, uint(2))
-	fmt.Println("%d", target)
 }
