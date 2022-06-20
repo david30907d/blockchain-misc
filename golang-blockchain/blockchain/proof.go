@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"log"
 	"math"
 	"math/big"
 )
 
-const Difficulty = 18
+const Difficulty = 12
 
 type ProofOfWork struct {
 	Block  *Block
@@ -24,9 +23,9 @@ func ProofFactory(b *Block) *ProofOfWork {
 	return pow
 }
 
-func GetHashOfBlock(pow *ProofOfWork) []byte {
+func GetHashOfBlock(pow *ProofOfWork, nonce int64) []byte {
 	bytesOfData := bytes.Join([][]byte{
-		pow.Block.Data, pow.Block.PrevHash, EncodeIntToHex(pow.Block.Nonce), EncodeIntToHex(Difficulty)}, []byte{})
+		pow.Block.Data, pow.Block.PrevHash, EncodeIntToHex(nonce), EncodeIntToHex(Difficulty)}, []byte{})
 	hash := sha256.Sum256(bytesOfData)
 	return hash[:]
 }
@@ -34,9 +33,10 @@ func GetHashOfBlock(pow *ProofOfWork) []byte {
 func (pow *ProofOfWork) MineBlockWithPOW() ([]byte, int64) {
 	var intHash big.Int
 	var hash []byte
-	nonce := 0
+	var nonce int64
+	nonce = 0
 	for nonce < math.MaxInt64 {
-		hash = GetHashOfBlock(pow)
+		hash = GetHashOfBlock(pow, nonce)
 		intHash.SetBytes(hash[:])
 		if intHash.Cmp(pow.Target) == -1 {
 			break
@@ -49,7 +49,7 @@ func (pow *ProofOfWork) MineBlockWithPOW() ([]byte, int64) {
 
 func Validate(pow *ProofOfWork) bool {
 	var intHash big.Int
-	hash := GetHashOfBlock(pow)
+	hash := GetHashOfBlock(pow, pow.Block.Nonce)
 	intHash.SetBytes(hash[:])
 	return intHash.Cmp(pow.Target) == -1
 }
@@ -60,6 +60,5 @@ func EncodeIntToHex(num int64) []byte {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Println(buf.Bytes())
 	return buf.Bytes()
 }
