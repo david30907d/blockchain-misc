@@ -13,19 +13,23 @@ type Block struct {
 	Hash     []byte
 	Data     []byte
 	PrevHash []byte
+	Nonce    int64
 }
 
 func (b *Block) DeriveHash() {
 	info := bytes.Join([][]byte{b.Data, b.PrevHash}, []byte{})
 	hash := sha256.Sum256(info)
-	// fmt.Println(string(hash))
 	b.Hash = hash[:]
 }
 
 func CreateBlock(data string, prevHash []byte) *Block {
-	block := &Block{[]byte{}, []byte(data), prevHash}
-	block.DeriveHash()
-	return block
+	block := &Block{[]byte{}, []byte(data), prevHash, 0}
+
+	proof := ProofFactory(block)
+	hash, nonce := proof.MineBlockWithPOW()
+	proof.Block.Hash = hash[:]
+	proof.Block.Nonce = nonce
+	return proof.Block
 }
 
 func (chain *BlockChain) AddBlock(data string) {
