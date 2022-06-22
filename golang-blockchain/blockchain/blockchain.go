@@ -62,6 +62,7 @@ func InitBlockChain() *BlockChain {
 			valCopy, err := item.ValueCopy(nil)
 			Handle(err)
 			fmt.Printf("The answer is: %x\n", valCopy)
+			lastHash = valCopy
 		}
 		return err
 	})
@@ -75,13 +76,14 @@ type BlockChainIterator struct {
 	Database    *badger.DB
 }
 
-func (iter *BlockChainIterator) Next() *Block {
+func (iter *BlockChainIterator) IterBackWard() *Block {
 	var valCopy *Block
 	err := iter.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(iter.CurrentHash)
 		Handle(err)
 		rawBlockByte, err := item.ValueCopy(nil)
 		valCopy = Deserialize(rawBlockByte)
+		iter.CurrentHash = valCopy.PrevHash
 		return err
 	})
 	Handle((err))
