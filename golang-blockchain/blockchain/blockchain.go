@@ -1,12 +1,16 @@
 package blockchain
 
 import (
+	"bytes"
+	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 
+	"github.com/david30907d/blockchain-misc/golang-blockchain/wallet"
 	"github.com/dgraph-io/badger"
 )
 
@@ -90,11 +94,13 @@ func InitBlockChain(address string) *BlockChain {
 }
 
 func (chain *BlockChain) ShowBalance(account_address string) int {
-	transactions := chain.FindUnspentTransactions(account_address)
+	pubKeyHash := wallet.Base58Decode([]byte(account_address))
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+	transactions := chain.FindUnspentTransactions(pubKeyHash)
 	balance := 0
 	for _, trx := range transactions {
 		for _, output := range trx.Outputs {
-			if output.CanBeUnlocked(account_address) {
+			if output.IsLockedWithKey(pubKeyHash) {
 				balance += output.Value
 			}
 		}
@@ -102,24 +108,27 @@ func (chain *BlockChain) ShowBalance(account_address string) int {
 	return balance
 }
 
-func (chain *BlockChain) FindSpendableOutputs(account_address string, amount int) (int, map[string][]int) {
+func (chain *BlockChain) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
 	result := make(map[string][]int)
 	fee := 0
-	unspentTrxs := chain.FindUnspentTransactions(account_address)
+	unspentTrxs := chain.FindUnspentTransactions(pubKeyHash)
 	for _, trx := range unspentTrxs {
 		txIdStr := hex.EncodeToString(trx.ID)
 		for outputIdx, output := range trx.Outputs {
-			result[txIdStr] = append(result[txIdStr], outputIdx)
-			fee += output.Value
-			if fee >= amount {
-				break
+			if output.IsLockedWithKey(pubKeyHash) {
+				result[txIdStr] = append(result[txIdStr], outputIdx)
+				fee += output.Value
+				if fee >= amount {
+					break
+				}
+
 			}
 		}
 	}
 	return fee, result
 }
 
-func (chain *BlockChain) FindUnspentTransactions(account_address string) []Transaction {
+func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 	// iterate through blockchain backward, so that we can get those trasactions haven't been spent!
 	// the main logic is as follow:
 	// 1. iter through blockchain backward
@@ -147,7 +156,7 @@ func (chain *BlockChain) FindUnspentTransactions(account_address string) []Trans
 						}
 					}
 				}
-				if output.CanBeUnlocked(account_address) == true {
+				if output.IsLockedWithKey(pubKeyHash) == true {
 					unspentTransactions = append(unspentTransactions, *transaction)
 				}
 			}
@@ -155,8 +164,8 @@ func (chain *BlockChain) FindUnspentTransactions(account_address string) []Trans
 			if transaction.IsCoinbase() == false {
 				// first, filter out those outputs referenced by input. In other words, they've already been spent!
 				for _, input := range transaction.Inputs {
-					if input.CanUnlock(account_address) {
-						trxIdStr := hex.EncodeToString(input.ID)
+					if input.UsesKey(pubKeyHash) {
+						trxIdStr := hex.EncodeToString(input.TrxID)
 						spentTxOutputMap[trxIdStr] = append(spentTxOutputMap[trxIdStr], input.OutIdx)
 					}
 				}
@@ -194,4 +203,44 @@ func DBexists() bool {
 	}
 
 	return true
+}
+
+func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
+	prevTXs := make(map[string]Transaction)
+
+	for _, in := range tx.Inputs {
+		prevTX, err := bc.FindTransaction(in.TrxID)
+		Handle(err)
+		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
+	}
+
+	tx.Sign(privKey, prevTXs)
+}
+
+func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
+	prevTXs := make(map[string]Transaction)
+
+	for _, in := range tx.Inputs {
+		prevTX, err := bc.FindTransaction(in.TrxID)
+		Handle(err)
+		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
+	}
+
+	return tx.Verify(prevTXs)
+}
+
+func (bc *BlockChain) FindTransaction(trxId []byte) (Transaction, error) {
+	iterator := bc.Iterator()
+	for {
+		block := iterator.IterBackWard()
+		for _, trx := range block.Transactions {
+			if bytes.Compare(trx.ID, trxId) == 0 {
+				return *trx, nil
+			}
+		}
+		if len(block.PrevHash) == 0 {
+			break
+		}
+	}
+	return Transaction{}, errors.New("Transaction does not exist")
 }
