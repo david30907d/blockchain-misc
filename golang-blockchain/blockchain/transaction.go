@@ -54,7 +54,7 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	if accumulateBalance < amount {
 		log.Panic("You don't have enough money!")
 	}
-	inputs = spendYourOutputs(fromPubKeyHash, inputs, validOutputs)
+	inputs = spendYourOutputs(w, fromPubKeyHash, inputs, validOutputs)
 	outputs = giveYourMoneyToPeople(outputs, to, amount)
 	if accumulateBalance > amount {
 		outputs = append(outputs, TxOutput{accumulateBalance - amount, fromPubKeyHash})
@@ -64,13 +64,13 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	return &tx
 }
 
-func spendYourOutputs(fromPubKeyHash []byte, inputs []TxInput, validOutputs map[string][]int) []TxInput {
+func spendYourOutputs(w wallet.Wallet, fromPubKeyHash []byte, inputs []TxInput, validOutputs map[string][]int) []TxInput {
 	// Usually inputs would be plural, since you might want to spent multiple small `Outputs` to buy an expensive stuff!
 	for txid, outputIdxs := range validOutputs {
 		txIdStr, err := hex.DecodeString(txid)
 		Handle(err)
 		for _, outputIdx := range outputIdxs {
-			input := TxInput{txIdStr, outputIdx, nil, fromPubKeyHash}
+			input := TxInput{txIdStr, outputIdx, nil, w.PublicKey}
 			inputs = append(inputs, input)
 		}
 	}

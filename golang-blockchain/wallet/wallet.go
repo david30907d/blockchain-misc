@@ -74,7 +74,7 @@ func Checksum(payload []byte) []byte {
 }
 
 func ValidateAddress(address string) bool {
-	pubKeyHash := Base58Encode([]byte(address))
+	pubKeyHash := Base58Decode([]byte(address))
 	actualCheckSum := pubKeyHash[len(pubKeyHash)-checksumLength:]
 	versionNum := pubKeyHash[0]
 	pubKey := pubKeyHash[1 : len(pubKeyHash)-checksumLength]

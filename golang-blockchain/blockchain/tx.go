@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/david30907d/blockchain-misc/golang-blockchain/wallet"
 )
@@ -27,7 +28,15 @@ func NewTXOutput(value int, address string) *TxOutput {
 
 func (in *TxInput) UsesKey(pubKeyHash []byte) bool {
 	inPubKeyHash := wallet.PublicKeyHash(in.PubKey)
-	return bytes.Compare(pubKeyHash, inPubKeyHash) == 0
+	return bytes.Equal(pubKeyHash, inPubKeyHash)
+}
+
+func (in TxInput) String() string {
+	return fmt.Sprintf("TxInput - TrxID: %x, OutIdx: %d, Signature: %x, PubKey: %x\n",
+		in.TrxID,
+		in.OutIdx,
+		in.Signature,
+		in.PubKey)
 }
 
 func (out *TxOutput) Lock(address []byte) {
