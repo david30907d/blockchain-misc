@@ -57,10 +57,11 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	inputs = spendYourOutputs(w, fromPubKeyHash, inputs, validOutputs)
 	outputs = giveYourMoneyToPeople(outputs, to, amount)
 	if accumulateBalance > amount {
-		outputs = append(outputs, TxOutput{accumulateBalance - amount, fromPubKeyHash})
+		outputs = append(outputs, *NewTXOutput(accumulateBalance-amount, from))
 	}
 	tx := Transaction{nil, inputs, outputs}
-	tx.SetID()
+	tx.ID = tx.Hash()
+	chain.SignTransaction(&tx, w.PrivateKey)
 	return &tx
 }
 

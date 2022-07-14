@@ -49,7 +49,21 @@ func ContinueBlockChain(address string) *BlockChain {
 }
 
 func (chain *BlockChain) AddBlock(transactions []*Transaction) {
+	// before we pack up this block, need to verify all the transactions first!
+
+	// In reality:
+	// TL;DR: Each block only needs to be verified once. Upon receiving a new block, only the reference to the parent and the validity of the new block need to be checked.
+
+	// When one gets started with Bitcoin, the client or mining software will download and verify the blockchain. During this synchronization, each block starting from the genesis block will be verified by the client. This is only necessary once for each block, because new blocks always reference the hash of the preceeding block.
+
+	// I.e. when you are trying to verify Block 5, it will contain the hash of it's parent, Block 4. As your client has already verified that Block 4 is valid, and if the hash featured in the new Block 5 matches the known hash of Block 4, it can go straight ahead and only check whether the new Block 5 is valid.
 	var lastHash []byte
+	for _, tx := range transactions {
+		if !chain.VerifyTransaction(tx) {
+			log.Panic("Invalid Transaction")
+		}
+	}
+
 	err := chain.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte("lastHash"))
 		Handle(err)
@@ -156,12 +170,12 @@ func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transactio
 						}
 					}
 				}
-				if output.IsLockedWithKey(pubKeyHash) == true {
+				if output.IsLockedWithKey(pubKeyHash) {
 					unspentTransactions = append(unspentTransactions, *transaction)
 				}
 			}
 			// Skip coinbase transaction since it's simply sending rewards to miner, has nth to do with "real" transaction
-			if transaction.IsCoinbase() == false {
+			if !transaction.IsCoinbase() {
 				// first, filter out those outputs referenced by input. In other words, they've already been spent!
 				for _, input := range transaction.Inputs {
 					if input.UsesKey(pubKeyHash) {
@@ -234,7 +248,7 @@ func (bc *BlockChain) FindTransaction(trxId []byte) (Transaction, error) {
 	for {
 		block := iterator.IterBackWard()
 		for _, trx := range block.Transactions {
-			if bytes.Compare(trx.ID, trxId) == 0 {
+			if bytes.Equal(trx.ID, trxId) {
 				return *trx, nil
 			}
 		}
