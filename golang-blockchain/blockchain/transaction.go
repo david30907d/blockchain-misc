@@ -40,7 +40,7 @@ func (tx *Transaction) Hash() []byte {
 	return hash[:]
 }
 
-func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction {
+func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
 	// about outputs: it would at least has one Output struct. It stands for the receipt that belongs to `to` this address.
 	// There's chance that we have 2 Outputs in Transaction{}, if the money you provided is greater than amount than you would get $xxx in change.
 	var inputs []TxInput
@@ -50,7 +50,7 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	fromPubKeyHash := wallet.PublicKeyHash(w.PublicKey)
 	Handle(err)
 
-	accumulateBalance, validOutputs := chain.FindSpendableOutputs(fromPubKeyHash, amount)
+	accumulateBalance, validOutputs := UTXO.FindSpendableOutputs(fromPubKeyHash, amount)
 	if accumulateBalance < amount {
 		log.Panic("You don't have enough money!")
 	}
@@ -61,7 +61,7 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	}
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
-	chain.SignTransaction(&tx, w.PrivateKey)
+	UTXO.Blockchain.SignTransaction(&tx, w.PrivateKey)
 	return &tx
 }
 
@@ -85,26 +85,21 @@ func giveYourMoneyToPeople(outputs []TxOutput, to string, amount int) []TxOutput
 
 func CoinbaseTx(to, account_address string) *Transaction {
 	if account_address == "" {
-		account_address = fmt.Sprintf("Coins to %s", to)
+		randData := make([]byte, 20)
+		_, err := rand.Read(randData)
+		Handle(err)
+
+		account_address = fmt.Sprintf("%x", randData)
 	}
 	txInput := TxInput{[]byte{}, -1, nil, []byte(account_address)}
 	txOutput := NewTXOutput(miningReward, to)
 	tx := Transaction{[]byte{}, []TxInput{txInput}, []TxOutput{*txOutput}}
-	tx.SetID()
+	tx.ID = tx.Hash()
 	return &tx
 }
 
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Inputs) == 1 && len(tx.Inputs[0].TrxID) == 0 && tx.Inputs[0].OutIdx == -1
-}
-
-func (tx *Transaction) SetID() {
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(tx)
-	Handle(err)
-	hash := sha256.Sum256(buffer.Bytes())
-	tx.ID = hash[:]
 }
 
 func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transaction) {

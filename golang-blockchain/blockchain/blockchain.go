@@ -10,7 +10,6 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/david30907d/blockchain-misc/golang-blockchain/wallet"
 	"github.com/dgraph-io/badger"
 )
 
@@ -48,7 +47,7 @@ func ContinueBlockChain(address string) *BlockChain {
 	return &chain
 }
 
-func (chain *BlockChain) AddBlock(transactions []*Transaction) {
+func (chain *BlockChain) AddBlock(transactions []*Transaction) *Block {
 	// before we pack up this block, need to verify all the transactions first!
 
 	// In reality:
@@ -79,6 +78,7 @@ func (chain *BlockChain) AddBlock(transactions []*Transaction) {
 		return err
 	})
 	Handle(err)
+	return newBlock
 }
 func (blockchain *BlockChain) Iterator() *BlockChainIterator {
 	iterator := &BlockChainIterator{blockchain.LastHash, blockchain.Database}
@@ -107,42 +107,7 @@ func InitBlockChain(address string) *BlockChain {
 	return &blockchain
 }
 
-func (chain *BlockChain) ShowBalance(account_address string) int {
-	pubKeyHash := wallet.Base58Decode([]byte(account_address))
-	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
-	transactions := chain.FindUnspentTransactions(pubKeyHash)
-	balance := 0
-	for _, trx := range transactions {
-		for _, output := range trx.Outputs {
-			if output.IsLockedWithKey(pubKeyHash) {
-				balance += output.Value
-			}
-		}
-	}
-	return balance
-}
-
-func (chain *BlockChain) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
-	result := make(map[string][]int)
-	fee := 0
-	unspentTrxs := chain.FindUnspentTransactions(pubKeyHash)
-	for _, trx := range unspentTrxs {
-		txIdStr := hex.EncodeToString(trx.ID)
-		for outputIdx, output := range trx.Outputs {
-			if output.IsLockedWithKey(pubKeyHash) {
-				result[txIdStr] = append(result[txIdStr], outputIdx)
-				fee += output.Value
-				if fee >= amount {
-					break
-				}
-
-			}
-		}
-	}
-	return fee, result
-}
-
-func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
+func (chain *BlockChain) FindUnspentTransactions() map[string]TxOutputs {
 	// iterate through blockchain backward, so that we can get those trasactions haven't been spent!
 	// the main logic is as follow:
 	// 1. iter through blockchain backward
@@ -151,7 +116,7 @@ func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transactio
 	// 3.1 On output field side, it stands for your balance
 	// 3.2 On input field side, it stands for how many money you've spent
 	// So the main logic is as follow: iterate through input and maitain a Map, and then also iterate through Output field. If they've appeared in that Map it means you've spent it already. The rest you be unspent output, which is your balance!
-	var unspentTransactions []Transaction
+	UTXO := make(map[string]TxOutputs)
 	spentTxOutputMap := make(map[string][]int)
 	iter := chain.Iterator()
 	for {
@@ -170,18 +135,19 @@ func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transactio
 						}
 					}
 				}
-				if output.IsLockedWithKey(pubKeyHash) {
-					unspentTransactions = append(unspentTransactions, *transaction)
-				}
+				// outs := UTXO[txIdStr]
+				// outs.Outputs = append(outs.Outputs, output)
+				// UTXO[txIdStr] = outs
+				txOutPuts := UTXO[txIdStr]
+				txOutPuts.Outputs = append(txOutPuts.Outputs, output)
+				UTXO[txIdStr] = txOutPuts
 			}
 			// Skip coinbase transaction since it's simply sending rewards to miner, has nth to do with "real" transaction
 			if !transaction.IsCoinbase() {
 				// first, filter out those outputs referenced by input. In other words, they've already been spent!
 				for _, input := range transaction.Inputs {
-					if input.UsesKey(pubKeyHash) {
-						trxIdStr := hex.EncodeToString(input.TrxID)
-						spentTxOutputMap[trxIdStr] = append(spentTxOutputMap[trxIdStr], input.OutIdx)
-					}
+					inTxID := hex.EncodeToString(input.TrxID)
+					spentTxOutputMap[inTxID] = append(spentTxOutputMap[inTxID], input.OutIdx)
 				}
 			}
 		}
@@ -189,7 +155,7 @@ func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transactio
 			break
 		}
 	}
-	return unspentTransactions
+	return UTXO
 }
 
 type BlockChainIterator struct {
@@ -232,6 +198,9 @@ func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey)
 }
 
 func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
+	if tx.IsCoinbase() {
+		return true
+	}
 	prevTXs := make(map[string]Transaction)
 
 	for _, in := range tx.Inputs {
