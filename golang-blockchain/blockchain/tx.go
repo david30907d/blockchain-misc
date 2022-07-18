@@ -55,7 +55,7 @@ func (out *TxOutput) Lock(address []byte) {
 }
 
 func (out *TxOutput) IsLockedWithKey(pubKeyHash []byte) bool {
-	return bytes.Compare(out.PubKeyHash, pubKeyHash) == 0
+	return bytes.Equal(out.PubKeyHash, pubKeyHash)
 }
 
 func (outs TxOutputs) Serialize() []byte {
