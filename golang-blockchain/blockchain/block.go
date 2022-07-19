@@ -4,17 +4,22 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
+	"time"
 )
 
 type Block struct {
+	Timestamp    int64
 	Hash         []byte
 	Transactions []*Transaction
 	PrevHash     []byte
 	Nonce        int
+	Height       int
 }
 
-func CreateBlock(transactions []*Transaction, prevHash []byte) *Block {
-	block := &Block{[]byte{}, transactions, prevHash, 0}
+func CreateBlock(txs []*Transaction, prevHash []byte, height int) *Block {
+	// func CreateBlock(transactions []*Transaction, prevHash []byte) *Block {
+	// 	block := &Block{[]byte{}, transactions, prevHash, 0}
+	block := &Block{time.Now().Unix(), []byte{}, txs, prevHash, 0, height}
 	pow := NewProof(block)
 	nonce, hash := pow.Run()
 
@@ -26,7 +31,8 @@ func CreateBlock(transactions []*Transaction, prevHash []byte) *Block {
 
 func Genesis(address string) *Block {
 	coinBaseTrx := CoinbaseTx(address, "This is a reward from Genesis Block, so the Sig does not matter!")
-	return CreateBlock([]*Transaction{coinBaseTrx}, []byte{})
+	// return CreateBlock([]*Transaction{coinBaseTrx}, []byte{})
+	return CreateBlock([]*Transaction{coinBaseTrx}, []byte{}, 0)
 }
 
 func (b *Block) Serialize() []byte {

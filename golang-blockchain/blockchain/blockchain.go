@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	dbFile = "/tmp/badger/MANIFEST"
+	dbPath = "./tmp/blocks_%s"
 )
 
 type BlockChain struct {
@@ -22,15 +22,17 @@ type BlockChain struct {
 	Database *badger.DB
 }
 
-func ContinueBlockChain(address string) *BlockChain {
-	if !DBexists() {
+func ContinueBlockChain(nodeId string) *BlockChain {
+	path := fmt.Sprintf(dbPath, nodeId)
+	if DBexists(path) == false {
 		fmt.Println("No existing blockchain found, create one!")
 		runtime.Goexit()
 	}
 
 	var lastHash []byte
 
-	db, err := badger.Open(badger.DefaultOptions("/tmp/badger"))
+	// db, err := badger.Open(badger.DefaultOptions("/tmp/badger"))
+	db, err := openDB(path, opts)
 	Handle(err)
 
 	err = db.Update(func(txn *badger.Txn) error {
@@ -82,12 +84,49 @@ func (chain *BlockChain) AddBlock(transactions []*Transaction) *Block {
 	Handle(err)
 	return newBlock
 }
+
+func (chain *BlockChain) AddBlock(block *Block) {
+	err := chain.Database.Update(func(txn *badger.Txn) error {
+		if _, err := txn.Get(block.Hash); err == nil {
+			return nil
+		}
+
+		blockData := block.Serialize()
+		err := txn.Set(block.Hash, blockData)
+		Handle(err)
+
+		item, err := txn.Get([]byte("lh"))
+		Handle(err)
+		lastHash, _ := item.Value()
+
+		item, err = txn.Get(lastHash)
+		Handle(err)
+		lastBlockData, _ := item.Value()
+
+		lastBlock := Deserialize(lastBlockData)
+
+		if block.Height > lastBlock.Height {
+			err = txn.Set([]byte("lh"), block.Hash)
+			Handle(err)
+			chain.LastHash = block.Hash
+		}
+
+		return nil
+	})
+	Handle(err)
+}
+
 func (blockchain *BlockChain) Iterator() *BlockChainIterator {
 	iterator := &BlockChainIterator{blockchain.LastHash, blockchain.Database}
 	return iterator
 }
 
-func InitBlockChain(address string) *BlockChain {
+func InitBlockChain(address, nodeId string) *BlockChain {
+	path := fmt.Sprintf(dbPath, nodeId)
+	if DBexists(path) {
+		fmt.Println("Blockchain already exists")
+		runtime.Goexit()
+	}
 	var lastHash []byte
 	db, err := badger.Open(badger.DefaultOptions("/tmp/badger"))
 	if err != nil {
@@ -179,8 +218,8 @@ func (iter *BlockChainIterator) IterBackWard() *Block {
 	return valCopy
 }
 
-func DBexists() bool {
-	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
+func DBexists(path string) bool {
+	if _, err := os.Stat(path + "/MANIFEST"); os.IsNotExist(err) {
 		return false
 	}
 
