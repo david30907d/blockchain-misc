@@ -7,8 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"log"
-
-	"golang.org/x/crypto/ripemd160"
 )
 
 const (
@@ -55,7 +53,9 @@ func MakeWallet() *Wallet {
 func PublicKeyHash(pubKey []byte) []byte {
 	pubHash := sha256.Sum256(pubKey)
 
-	hasher := ripemd160.New()
+	// SA1019: package golang.org/x/crypto/ripemd160 is deprecated: RIPEMD-160 is a legacy hash and should not be used for new applications. Also, this package does not and will not provide an optimized implementation. Instead, use a modern hash like SHA-256 (from crypto/sha256).
+	// hasher := ripemd160.New()
+	hasher := sha256.New()
 	_, err := hasher.Write(pubHash[:])
 	if err != nil {
 		log.Panic(err)

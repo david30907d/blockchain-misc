@@ -73,7 +73,9 @@ func (chain *BlockChain) AddBlock(transactions []*Transaction) *Block {
 	newBlock := CreateBlock(transactions, lastHash)
 	err = chain.Database.Update(func(txn *badger.Txn) error {
 		err := txn.Set([]byte("lastHash"), newBlock.Hash)
-		txn.Set(newBlock.Hash, newBlock.Serialize())
+		Handle(err)
+		err = txn.Set(newBlock.Hash, newBlock.Serialize())
+		Handle(err)
 		chain.LastHash = newBlock.Hash
 		return err
 	})

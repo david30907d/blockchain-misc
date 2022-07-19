@@ -35,7 +35,7 @@ func (cli *CommandLine) validateArgs() {
 func (cli *CommandLine) reindexUTXO() {
 	chain := blockchain.ContinueBlockChain("")
 	defer chain.Database.Close()
-	UTXOSet := blockchain.UTXOSet{chain}
+	UTXOSet := blockchain.UTXOSet{Blockchain: chain}
 	UTXOSet.Reindex()
 
 	count := UTXOSet.CountTransactions()

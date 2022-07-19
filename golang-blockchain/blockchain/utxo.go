@@ -196,7 +196,7 @@ func (u *UTXOSet) DeleteByPrefix(prefix []byte) {
 	}
 
 	collectSize := 100000
-	u.Blockchain.Database.View(func(txn *badger.Txn) error {
+	err := u.Blockchain.Database.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
@@ -223,4 +223,5 @@ func (u *UTXOSet) DeleteByPrefix(prefix []byte) {
 		}
 		return nil
 	})
+	Handle(err)
 }
