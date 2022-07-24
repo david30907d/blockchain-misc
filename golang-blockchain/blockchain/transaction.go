@@ -40,16 +40,13 @@ func (tx *Transaction) Hash() []byte {
 	return hash[:]
 }
 
-func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
+func NewTransaction(w *wallet.Wallet, to string, amount int, UTXO *UTXOSet) *Transaction {
 	// about outputs: it would at least has one Output struct. It stands for the receipt that belongs to `to` this address.
 	// There's chance that we have 2 Outputs in Transaction{}, if the money you provided is greater than amount than you would get $xxx in change.
 	var inputs []TxInput
 	var outputs []TxOutput
-	wallets, err := wallet.CreateWallets()
-	w := wallets.GetWallet(from)
+	from := string(w.Address())
 	fromPubKeyHash := wallet.PublicKeyHash(w.PublicKey)
-	Handle(err)
-
 	accumulateBalance, validOutputs := UTXO.FindSpendableOutputs(fromPubKeyHash, amount)
 	if accumulateBalance < amount {
 		log.Panic("You don't have enough money!")
@@ -65,7 +62,7 @@ func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
 	return &tx
 }
 
-func spendYourOutputs(w wallet.Wallet, fromPubKeyHash []byte, inputs []TxInput, validOutputs map[string][]int) []TxInput {
+func spendYourOutputs(w *wallet.Wallet, fromPubKeyHash []byte, inputs []TxInput, validOutputs map[string][]int) []TxInput {
 	// Usually inputs would be plural, since you might want to spent multiple small `Outputs` to buy an expensive stuff!
 	for txid, outputIdxs := range validOutputs {
 		txIdStr, err := hex.DecodeString(txid)
@@ -81,6 +78,15 @@ func spendYourOutputs(w wallet.Wallet, fromPubKeyHash []byte, inputs []TxInput, 
 func giveYourMoneyToPeople(outputs []TxOutput, to string, amount int) []TxOutput {
 	outputs = append(outputs, *NewTXOutput(amount, to))
 	return outputs
+}
+
+func DeserializeTransaction(data []byte) Transaction {
+	var transaction Transaction
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&transaction)
+	Handle(err)
+	return transaction
 }
 
 func CoinbaseTx(to, account_address string) *Transaction {
@@ -120,15 +126,14 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transac
 		prevTX := prevTXs[hex.EncodeToString(in.TrxID)]
 		txCopy.Inputs[inId].Signature = nil
 		txCopy.Inputs[inId].PubKey = prevTX.Outputs[in.OutIdx].PubKeyHash
-		txCopy.ID = txCopy.Hash()
-		txCopy.Inputs[inId].PubKey = nil
 
-		r, s, err := ecdsa.Sign(rand.Reader, &privKey, txCopy.ID)
+		dataToSign := fmt.Sprintf("%x\n", txCopy)
+		r, s, err := ecdsa.Sign(rand.Reader, &privKey, []byte(dataToSign))
 		Handle(err)
 		signature := append(r.Bytes(), s.Bytes()...)
 
 		tx.Inputs[inId].Signature = signature
-
+		txCopy.Inputs[inId].PubKey = nil
 	}
 }
 
@@ -150,8 +155,6 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 		prevTx := prevTXs[hex.EncodeToString(in.TrxID)]
 		txCopy.Inputs[inId].Signature = nil
 		txCopy.Inputs[inId].PubKey = prevTx.Outputs[in.OutIdx].PubKeyHash
-		txCopy.ID = txCopy.Hash()
-		txCopy.Inputs[inId].PubKey = nil
 
 		r := big.Int{}
 		s := big.Int{}
@@ -166,8 +169,10 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 		x.SetBytes(in.PubKey[:(keyLen / 2)])
 		y.SetBytes(in.PubKey[(keyLen / 2):])
 
+		dataToVerify := fmt.Sprintf("%x\n", txCopy)
+
 		rawPubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
-		if !ecdsa.Verify(&rawPubKey, txCopy.ID, &r, &s) {
+		if !ecdsa.Verify(&rawPubKey, []byte(dataToVerify), &r, &s) {
 			return false
 		}
 	}

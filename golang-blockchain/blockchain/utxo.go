@@ -80,7 +80,7 @@ func (u *UTXOSet) ShowBalance(pubKeyHash []byte) int {
 	return balance
 }
 
-func (u *UTXOSet) CountTransactions() int {
+func (u UTXOSet) CountTransactions() int {
 	db := u.Blockchain.Database
 	counter := 0
 
@@ -101,7 +101,7 @@ func (u *UTXOSet) CountTransactions() int {
 	return counter
 }
 
-func (u *UTXOSet) Reindex() {
+func (u UTXOSet) Reindex() {
 	// only need to reindex them for once!
 	db := u.Blockchain.Database
 
