@@ -1,0 +1,39 @@
+# Oracle
+
+It's a really bare-bone oracle, which allows "honest" user to set ETH Gas Price into Contract. Afterwards, users can interact with contract and get "correct" gas price from Oracle
+
+1. setGasPrice
+2. getGasPrice
+
+
+```
+truffle(develop)> await instance.setGasPrice(111)
+{
+  tx: '0x5e7b25f6c5e8922d9be527aeba3cbae0def3567721dc15d6c1e64692b1408645',
+  receipt: {
+    transactionHash: '0x5e7b25f6c5e8922d9be527aeba3cbae0def3567721dc15d6c1e64692b1408645',
+    transactionIndex: 0,
+    blockNumber: 3,
+    blockHash: '0x6d818c1ef82fae244ec94477e1c29129ffbd0359f0a2f0bb98c8696a9da170bd',
+    from: '0x67bf9fcffb9ec327daa691855cad1e4dca4f3ae8',
+    to: '0x29ed7cfe547c8ffca2a1a916043d257c8fb24a20',
+    cumulativeGasUsed: 23824,
+    gasUsed: 23824,
+    contractAddress: null,
+    logs: [],
+    logsBloom: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+    status: true,
+    effectiveGasPrice: 3175041270,
+    type: '0x2',
+    rawLogs: []
+  },
+  logs: []
+}
+truffle(develop)> await instance.getGasPrice()
+BN {
+  negative: 0,
+  words: [ 111, <1 empty item> ],
+  length: 1,
+  red: null
+}
+```
