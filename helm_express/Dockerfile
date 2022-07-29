@@ -1,8 +1,8 @@
-FROM node:8
+FROM mongo-express:1.0.0-alpha.4
 # Create app directory
 WORKDIR /usr/node/app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 EXPOSE 8080
-CMD ["npm", "start"]
+CMD ["npx", "nodemon", "app.js"]

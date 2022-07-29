@@ -1,0 +1,17 @@
+version: '3.3'
+
+services:
+    mongo:
+        image: mongo
+
+    express:
+        image: davidtnfsh/helm_express:0.3
+        ports:
+            - "8080:8080"
+        links:
+            - mongo
+        environment: 
+            - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017
+        volumes:
+          - ./src:/usr/node/app/src
+          
