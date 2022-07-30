@@ -58,15 +58,15 @@ async function getPriceFromChainLink(tokenAddress) {
     .latestRoundData()
     .call()
     .then((roundData) => {
-      return roundData.answer
+      return roundData.answer;
     });
   const decimals = await priceFeed.methods
-  .decimals()
-  .call()
-  .then((decimals) => {
-    return decimals
-  });
-  return answer/(10**decimals)
+    .decimals()
+    .call()
+    .then((decimals) => {
+      return decimals;
+    });
+  return answer / 10 ** decimals;
 }
 
 // add the code below

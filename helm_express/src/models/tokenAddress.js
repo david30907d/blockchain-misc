@@ -1,13 +1,9 @@
-// // @/models.js
-// const mongoose = require("mongoose");
+var mongoose = require('mongoose')
 
-// const tokenAddressSchema = new mongoose.Schema({
-//   tokenAddress: {
-//     type: String,
-//     required: true,
-//   }
-// });
+var tokenAddressSchema = mongoose.Schema({
+    // address:  { type: String, ref: "Address", required: true, unique: true},
+    address:  { type: String, required: true, unique: true},
+});
 
-// const model = mongoose.model("tokenAddress", tokenAddressSchema);
-
-// module.exports = { model };
+module.exports.TokenAddress = mongoose.model('TokenAddress', tokenAddressSchema);
+// module.exports.tokenAddressSchema = tokenAddressSchema
