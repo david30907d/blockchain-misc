@@ -10,8 +10,23 @@ services:
       - "8080:8080"
     links:
       - mongo
+      - cache
     environment:
       - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
     volumes:
       - ./src:/usr/node/app/src
       - ./app.js:/usr/node/app/app.js
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes: 
+      - cache:/data
+volumes:
+  cache:
+    driver: local
