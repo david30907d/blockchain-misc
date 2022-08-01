@@ -8,7 +8,7 @@ image:
   repository: davidtnfsh/helm_express
   pullPolicy: Never
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.1"
+  tag: "0.7"
   # tag: latest
 
 imagePullSecrets: []

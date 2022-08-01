@@ -5,14 +5,14 @@ async function controller(req, res, next) {
   const tokenName = req.query.tokenName;
   const CoinGeckoClient = new CoinGecko();
   const currentUnixTimeStamp = Date.now() / 1000;
-  const threeDaysAgo = currentUnixTimeStamp - 86400 * 3;
+  const threeHoursAgo = currentUnixTimeStamp - 3600 * 3;
   let priceHistory;
   try {
     const cacheResult = await RedisClient.get(tokenName);
     if (cacheResult === null) {
       // cache doesn't exist!
       let data = await CoinGeckoClient.coins.fetchMarketChartRange(tokenName, {
-        from: threeDaysAgo,
+        from: threeHoursAgo,
         to: currentUnixTimeStamp,
       });
       priceHistory = data.data.prices;
@@ -28,11 +28,12 @@ async function controller(req, res, next) {
       // hit cache!
       resp = JSON.parse(await RedisClient.get(tokenName));
     }
-    await RedisClient.disconnect();
-    return res.status(200).json(resp);
+    res.status(200).json(resp);
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: 500, error: `${error}` });
+    res.status(500).json({ status: 500, error: `${error}` });
+  } finally {
+    await RedisClient.disconnect();
   }
 }
 module.exports = { controller };

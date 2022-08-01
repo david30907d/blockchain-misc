@@ -1,5 +1,8 @@
-// atom: curl --location --request GET 'http://localhost:8080/marketcap?tokenContractAddress=0x83b835c3200147e74bddf3571fde527647b126c7&chainLinkTokenAddress=0xc751E86208F0F8aF2d5CD0e29716cA7AD98B5eF5' --header 'Content-Type: application/json'
+// chainlink proxy list: https://docs.chain.link/docs/ethereum-addresses/
+// rinkby ethscan: https://rinkeby.etherscan.io/token/0xe43a8b1bfd19721e918b6068c158bf8fab41abee
+// atom: curl --location --request GET 'http://localhost:8080/marketcap?tokenContractAddress=0x83b835c3200147e74bddf3571fde527647b126c7&chainLinkTokenAddress=0x3539F2E214d8BC7E611056383323aC6D1b01943c' --header 'Content-Type: application/json'
 // BAT: curl --location --request GET 'http://localhost:8080/marketcap?tokenContractAddress=0xE43A8b1bfD19721E918b6068c158bf8faB41aBee&chainLinkTokenAddress=0x031dB56e01f82f20803059331DC6bEe9b17F7fC9' --header 'Content-Type: application/json'
+// BNB: curl --location --request GET 'http://localhost:8080/marketcap?tokenContractAddress=0xef75685f001210855327e08af9143d3e1de5c758&chainLinkTokenAddress=0xcf0f51ca2cDAecb464eeE4227f5295F2384F84ED' --header 'Content-Type: application/json'
 const Web3 = require("web3");
 const RedisClient = require("../models/redis.js").client;
 
@@ -160,11 +163,11 @@ async function controller(req, res, next) {
       // hit cache
       resp = JSON.parse(cacheResult);
     }
-
-    await RedisClient.disconnect();
-    return res.status(200).json(resp);
+    res.status(200).json(resp);
   } catch (error) {
-    return res.status(500).json({ status: 500, error: `${error}` });
+    res.status(500).json({ status: 500, error: `${error}` });
+  } finally {
+    await RedisClient.disconnect();
   }
 }
 
