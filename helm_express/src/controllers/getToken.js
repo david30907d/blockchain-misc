@@ -1,6 +1,9 @@
 const { TokenAddress } = require("../models/tokenAddress.js");
 
 async function controller(req, res, next) {
+  /*
+  return all the token addresses in DB
+  */
   TokenAddress.find({})
     .then((collections) => {
       let addresses = [];

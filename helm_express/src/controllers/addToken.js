@@ -1,6 +1,9 @@
 const { TokenAddress } = require("../models/tokenAddress.js");
 
 async function controller(req, res, next) {
+  /*
+  add token address into DB
+  */
   try {
     await new TokenAddress({ address: req.body.address }).save();
     const msg = `Successfully saved ${req.body.address} into Mongo`;

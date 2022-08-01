@@ -18,10 +18,10 @@ spec:
         app: mongo
     spec:
       containers:
-        - image: mongo:5.0.9
+        - image: {{ .Values.mongo.image }}
           name: mongo
           ports:
-            - containerPort: 27017
+            - containerPort: {{ .Values.mongo.containerPort }}
           resources: {}
       restartPolicy: Always
 status: {}

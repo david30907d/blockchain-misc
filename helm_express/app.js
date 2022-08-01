@@ -16,7 +16,9 @@ const HOST = "0.0.0.0";
 // App
 const app = express();
 app.use(express.json());
-app.get("/", async (_req, res, _next) => {res.status(200).send('OK')});
+app.get("/", async (_req, res, _next) => {
+  res.status(200).send("OK");
+});
 app.get("/marketcap", marketcap.controller);
 app.post("/token", addToken.controller);
 app.get("/token", getToken.controller);

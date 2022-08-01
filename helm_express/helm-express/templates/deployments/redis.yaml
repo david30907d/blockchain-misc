@@ -18,10 +18,10 @@ spec:
         app: redis
     spec:
       containers:
-        - image: redis:6.2-alpine
+        - image: {{ .Values.redis.image }}
           name: redis
           ports:
-            - containerPort: 6379
+            - containerPort: {{ .Values.redis.containerPort }}
           resources: {}
           env:
           - name: REDIS_HOST
