@@ -5,7 +5,6 @@ It's a really bare-bone oracle, which allows "honest" user to set ETH Gas Price 
 1. setGasPrice
 2. getGasPrice
 
-
 ```
 truffle(develop)> await instance.setGasPrice(111)
 {
