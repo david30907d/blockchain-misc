@@ -8,7 +8,7 @@ image:
   repository: davidtnfsh/helm_express
   pullPolicy: Never
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.1"
+  tag: "0.9"
   # tag: latest
 
 imagePullSecrets: []
@@ -87,3 +87,12 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# Redis
+redis:
+  image: redis:6.2-alpine
+  containerPort: 6379
+# Mongo
+mongo:
+  image: mongo:5.0.9
+  containerPort: 27017
