@@ -17,14 +17,6 @@ async function controller(req, res, next) {
       // cache doesn't exist!
       cacheResp = await getPriceHistory(RedisClient, tokenName);
       cacheResp.cacheStatus = false;
-      console.log(cacheResp);
-      console.log(cacheResp);
-      console.log(cacheResp);
-      console.log(cacheResp);
-      console.log(cacheResp);
-      console.log(cacheResp);
-      console.log(cacheResp);
-      console.log(cacheResp);
       resp = cacheResp;
     } else {
       // hit cache!
